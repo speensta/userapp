@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
         requestUser.setUserid(UUID.randomUUID().toString());
         UserEntity userEntity = modelMapper.map(requestUser, UserEntity.class);
 
-        userEntity.setEncryptedPassword(passwordEncoder.encode("1234"));
+        userEntity.setEncryptedPassword(passwordEncoder.encode(requestUser.getPassword()));
 
         userRepository.save(userEntity);
 

@@ -6,18 +6,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -30,21 +31,32 @@ public class SecurityConfig {
 
     private final UserDetailService userDetailService;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final Environment env;
 
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .antMatchers(HttpMethod.POST,"/user-service/user")
+                .antMatchers("/test_db/**",
+                                        "/resource/**",
+                                        "/images/**",
+                                        "/js/**",
+                                        "/css/**",
+                        "/user-service/user");
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authenticationManagerBuilder.userDetailsService(userDetailService).passwordEncoder(bCryptPasswordEncoder);
-
         AuthenticationManager authenticationManager = authenticationManagerBuilder.build();
 
-        http.csrf().disable();
-        http.authorizeRequests().antMatchers("/**")
-                .permitAll()
+        http.authorizeHttpRequests()
+                .antMatchers(HttpMethod.POST, "/user-service/user").permitAll()
+                .antMatchers(HttpMethod.GET, "/user-service/user/**").authenticated()
                 .and()
-                .addFilter(getAuthenticationFilter(authenticationManager))
+                .formLogin().disable().csrf().disable()
+                .addFilter(new AuthenticationFilter(authenticationManager, userDetailService, env))
                 .authenticationManager(authenticationManager);
 
         http.headers().frameOptions().disable();
@@ -55,12 +67,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public AuthenticationFilter getAuthenticationFilter(AuthenticationManager authenticationManager) {
-        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationManager);
-        return authenticationFilter;
     }
 
     @Bean
