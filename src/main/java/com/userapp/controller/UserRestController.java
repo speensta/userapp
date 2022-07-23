@@ -6,6 +6,7 @@ import com.userapp.vo.Greeting;
 import com.userapp.vo.RequestUser;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +23,14 @@ public class UserRestController {
 
     private final ModelMapper modelMapper;
 
+    private final Environment env;
+
     @GetMapping("/heath-check")
     public String check(HttpServletRequest request) {
-        return String.format("health-check : {}", request.getServerPort());
+        return String.format("health-check token.secret = {}", env.getProperty("token.secret")
+                + "health-check token.expiration_time = {}", env.getProperty("token.expiration_time")
+                + "health-check local.server.port = {}", env.getProperty("local.server.port")
+                + "health-check server.port = {}", env.getProperty("server.port"));
     }
 
     @GetMapping("/welcome")
