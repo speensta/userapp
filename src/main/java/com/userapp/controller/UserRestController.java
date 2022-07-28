@@ -45,7 +45,14 @@ public class UserRestController {
     }
 
     @GetMapping("/user/{userid}")
-    public UserDto findOne(@RequestParam(required = true) String userid) {
+    public UserDto findOne(@PathVariable(required = false) String userid) {
+        return userService.loadUserByUserId(RequestUser.builder()
+                .userid(userid)
+                .build());
+    }
+
+    @GetMapping("/{userid}/user")
+    public UserDto findOne2(@PathVariable(required = true) String userid) {
         return userService.loadUserByUserId(RequestUser.builder()
                 .userid(userid)
                 .build());

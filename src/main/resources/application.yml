@@ -5,7 +5,7 @@ spring:
   application:
     name: userapp
   rabbitmq:
-    host: 127.0.0.1
+    host: 43.200.132.48
     port: 5672
     username: guest
     password: guest
@@ -35,6 +35,7 @@ eureka:
 greeting:
   message: Welcome to the Simple E-commerce
 
+
 management:
   endpoints:
     web:
@@ -44,3 +45,8 @@ management:
 #token:
 #  expiration_time: 3640000
 #  secret: testtesttestetsttesttesttestetsttesttesttestetsttesttesttestetst
+
+logging:
+  level:
+    com.userapp.service: DEBUG
+
