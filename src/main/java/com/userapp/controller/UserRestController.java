@@ -60,9 +60,8 @@ public class UserRestController {
 
     @PostMapping("/user")
     public ResponseEntity createUser(@RequestBody RequestUser requestUser) {
-        UserDto userDto = modelMapper.map(requestUser, UserDto.class);
-        userService.createUser(requestUser);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userDto);
+        UserDto resultUserDto = userService.createUser(requestUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resultUserDto);
     }
 
     @PutMapping("/user")

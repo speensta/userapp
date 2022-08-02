@@ -12,7 +12,7 @@ public interface UserService {
 
     List<UserDto> findAllUser();
     UserDto loadUserByUserId(RequestUser requestUser);
-    void createUser(RequestUser requestUser);
+    UserDto createUser(RequestUser requestUser);
     void updateUser(RequestUser requestUser);
 
 

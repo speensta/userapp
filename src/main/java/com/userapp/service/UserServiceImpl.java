@@ -1,5 +1,6 @@
 package com.userapp.service;
 
+import com.userapp.config.Resilience4jConfig;
 import com.userapp.dto.UserDto;
 import com.userapp.entity.UserEntity;
 import com.userapp.exception.FeignErrorDecoder;
@@ -7,17 +8,12 @@ import com.userapp.exception.NotFoundException;
 import com.userapp.repository.UserRepository;
 import com.userapp.vo.RequestUser;
 import com.userapp.vo.ResponseOrder;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -39,8 +34,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final Environment env;
     private final OrderRestApiClient orderRestApiClient;
-    private final FeignErrorDecoder feignErrorDecoder;
-
+    private final CircuitBreakerFactory circuitBreakerFactory;
 
     @Override
     public List<UserDto> findAllUser() {
@@ -64,20 +58,28 @@ public class UserServiceImpl implements UserService {
 //                HttpMethod.GET, null, new ParameterizedTypeReference<List<ResponseOrder>>() {
 //                });
 
-        List<ResponseOrder> responseList = orderRestApiClient.getOrders(requestUser.getUserid());
+//        List<ResponseOrder> responseList = orderRestApiClient.getOrders(requestUser.getUserid());
+        log.info("start order msa call");
+        CircuitBreaker circuitBreaker = circuitBreakerFactory.create("circuitbreaker");
+        List<ResponseOrder> responseList = circuitBreaker.run(() ->
+                orderRestApiClient.getOrders(requestUser.getUserid()), throwable -> new ArrayList());
+        log.info("end order msa call");
+
         userDto.setOrders(responseList);
 
         return userDto;
     }
 
     @Override
-    public void createUser(RequestUser requestUser) {
+    public UserDto createUser(RequestUser requestUser) {
         requestUser.setUserid(UUID.randomUUID().toString());
         UserEntity userEntity = modelMapper.map(requestUser, UserEntity.class);
 
         userEntity.setEncryptedPassword(passwordEncoder.encode(requestUser.getPassword()));
 
         userRepository.save(userEntity);
+
+        return modelMapper.map(userEntity, UserDto.class);
 
     }
 
